@@ -1,0 +1,79 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def probabilites_theoriques(m, w0):
+    poids = [w0 + (m - 1) / 2 - abs(i - (m + 1) / 2) for i in range(1, m + 1)]
+    probabilites = np.array(poids) / np.sum(poids)
+    return probabilites
+
+def choix_guichet(m, w0, n):
+    poids = [w0 + (m - 1) / 2 - abs(i - (m + 1) / 2) for i in range(1, m + 1)]
+    choix = np.random.choice(range(1, m + 1), size=n, p=np.array(poids) / np.sum(poids))
+    return choix
+
+# Paramètres
+m = 7
+w0 = 10
+n = 10000  # Nombre de véhicules
+
+# Calculer les probabilités théoriques
+probabilites = probabilites_theoriques(m, w0)
+
+# Effectuer les choix de guichet
+choix_reels = choix_guichet(m, w0, n)
+
+# Afficher les probabilités théoriques pour chaque guichet
+for i, proba in enumerate(probabilites):
+    print(f"Probabilité théorique pour le guichet {i+1} : {proba} vs pourcentage d'effectif au guichet {i+1} : {np.mean(choix_reels == i+1)}")
+
+# Calculer les effectifs réels pour chaque guichet
+effectifs_reels, _ = np.histogram(choix_reels, bins=np.arange(1, m + 2))
+
+# Afficher l'histogramme des effectifs réels et les probabilités théoriques
+plt.bar(np.arange(1, m + 1) - 0.15, effectifs_reels, width=0.3, label='Effectif réel', edgecolor='black')
+plt.bar(np.arange(1, m + 1) + 0.15, probabilites * n, width=0.3, label='Probabilité théorique', edgecolor='black')
+plt.title('Effectifs réels vs Probabilités théoriques pour chaque guichet')
+plt.xlabel('Guichet')
+plt.ylabel('Effectif / Probabilité')
+plt.xticks(range(1, m + 1))
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+PG
+
+import numpy as np
+import time
+
+# Fonction g(t)
+def g(t, t1, delta):
+    return np.sin(np.pi * t / t1)**2
+
+# Algorithme de rejet avec taille de batch adaptative majorée à 10% de la taille totale du problème
+def rejection_sampling(num_samples, t1, delta):
+    samples = []
+    batch_size = int(num_samples * 0.1)  # Taille de batch toujours fixée à 10% de n
+    while len(samples) < num_samples:
+        # Générer un batch d'échantillons à partir de la distribution auxiliaire
+        t_samples = np.random.exponential(delta, batch_size)
+        # Générer un nombre aléatoire uniforme pour chaque échantillon dans le batch
+        u_samples = np.random.uniform(0, 1, batch_size)
+        # Calculer les valeurs de g(t) pour chaque échantillon dans le batch
+        g_values = g(t_samples, t1, delta)
+        # Vérifier si chaque échantillon dans le batch est accepté ou rejeté
+        accepted_samples = [t_samples[i] for i in range(batch_size) if u_samples[i] <= g_values[i]]
+        # Ajouter les échantillons acceptés à la liste des échantillons
+        samples.extend(accepted_samples)
+        # Limiter la taille de la liste à n éléments
+        samples = samples[:num_samples]
+    return samples
+
+
+def simule_pg(n, params):
+    delta = params["delta"]
+    t1 = params["t1"]
+    
+    samples = rejection_sampling(n, t1, delta)
+    return samples
